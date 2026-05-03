@@ -16,6 +16,10 @@ Server: Flask (Python)
 Client: Browser-based (JavaScript + TensorFlow.js)
 Dataset: Labeled Faces in the Wild (LFW)
 
+Novelty
+
+The project’s actual strengths are:
+
 🔹 1. Zero-install Federated Learning Client
 Runs entirely in browser (no APK)
 Uses TensorFlow.js
