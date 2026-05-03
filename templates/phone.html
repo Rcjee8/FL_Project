@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FL Face Client</title>
+<style>
+:root {
+  --bg:#07090f;--bg1:#0d1420;--bg2:#131e30;--border:#1b2d45;
+  --cyan:#00c8f0;--green:#00e676;--amber:#ffb300;--red:#ff4444;
+  --txt:#cde4f5;--muted:#3d5a78;--mono:'Courier New',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:var(--mono);
+  font-size:13px;max-width:480px;margin:0 auto;padding:14px 14px 80px}
+
+.topbar{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);
+  padding-bottom:10px;margin-bottom:14px}
+.topbar-title{color:var(--cyan);font-size:13px;letter-spacing:2px;flex:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.live{background:var(--green);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.tabs{display:flex;gap:4px;margin-bottom:14px}
+.tab{flex:1;padding:7px 4px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg2);color:var(--muted);font-family:var(--mono);
+  font-size:10px;font-weight:bold;letter-spacing:.5px;text-align:center;
+  cursor:pointer;text-transform:uppercase;transition:all .2s}
+.tab.active{background:rgba(0,200,240,.1);border-color:var(--cyan);color:var(--cyan)}
+
+.card{background:var(--bg1);border:1px solid var(--border);
+  border-radius:10px;padding:12px;margin-bottom:10px}
+.label{font-size:9px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.5px;margin-bottom:5px}
+
+/* Camera */
+.video-wrap{position:relative;width:100%;aspect-ratio:4/3;
+  background:#000;border-radius:8px;overflow:hidden;margin-bottom:10px}
+.vw-video{width:100%;height:100%;object-fit:cover}
+.face-guide{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);width:55%;aspect-ratio:1;
+  border-radius:50%;border:2px dashed rgba(0,200,240,.6);pointer-events:none}
+.cam-error{display:none;background:rgba(255,68,68,.08);
+  border:1px solid rgba(255,68,68,.35);border-radius:8px;
+  padding:10px 12px;font-size:11px;color:var(--red);
+  line-height:1.7;margin-bottom:10px}
+.capture-row{display:flex;gap:6px;margin-bottom:10px}
+.capture-row select{flex:1;background:var(--bg2);border:1px solid var(--border);
+  color:var(--txt);border-radius:6px;padding:7px;
+  font-family:var(--mono);font-size:11px;outline:none}
+.btn-snap{padding:8px 14px;border-radius:6px;background:var(--cyan);
+  color:#000;border:none;font-family:var(--mono);font-weight:bold;
+  font-size:14px;cursor:pointer;flex-shrink:0}
+.btn-snap:disabled{opacity:.3;cursor:not-allowed;background:var(--bg2);color:var(--muted)}
+.btn-cam{width:100%;padding:7px;border-radius:6px;background:var(--bg2);
+  border:1px solid var(--border);color:var(--muted);
+  font-family:var(--mono);font-size:11px;cursor:pointer;margin-bottom:10px}
+/* Add person */
+.add-person-row{display:flex;gap:6px;margin-bottom:10px}
+.add-person-row input{flex:1;background:var(--bg2);border:1px solid var(--border);
+  color:var(--txt);border-radius:6px;padding:7px;
+  font-family:var(--mono);font-size:12px;outline:none}
+.add-person-row input::placeholder{color:var(--muted)}
+.add-person-row input:focus{border-color:var(--cyan)}
+.btn-add{padding:7px 12px;border-radius:6px;background:rgba(0,200,240,.15);
+  border:1px solid var(--cyan);color:var(--cyan);font-family:var(--mono);
+  font-size:11px;font-weight:bold;cursor:pointer;flex-shrink:0;white-space:nowrap}
+.btn-add:disabled{opacity:.3;cursor:not-allowed}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.stat-box{background:var(--bg2);border:1px solid var(--border);
+  border-radius:7px;padding:8px;text-align:center}
+.stat-num{font-size:22px;font-weight:bold;color:var(--cyan)}
+.stat-num.g{color:var(--green)}.stat-num.a{color:var(--amber)}.stat-num.r{color:var(--red)}
+
+/* Thumbnails */
+.person-section{margin-bottom:10px}
+.person-header{font-size:10px;color:var(--cyan);margin-bottom:5px;
+  display:flex;justify-content:space-between}
+.thumb-strip{display:flex;gap:5px;flex-wrap:wrap}
+.thumb-wrap{position:relative}
+.thumb{width:38px;height:38px;border-radius:4px;border:1px solid var(--border);display:block}
+.del-btn{position:absolute;top:-4px;right:-4px;width:15px;height:15px;
+  border-radius:50%;background:var(--red);color:#fff;font-size:9px;
+  border:none;cursor:pointer;line-height:15px;text-align:center;padding:0}
+
+/* Train tab */
+.btn-start{display:block;width:100%;padding:13px;
+  background:linear-gradient(135deg,#005f78,var(--cyan));
+  color:#000;border:none;border-radius:8px;font-family:var(--mono);
+  font-size:13px;font-weight:bold;letter-spacing:1px;cursor:pointer;
+  margin-bottom:10px;transition:opacity .2s}
+.btn-start:disabled{opacity:.3;cursor:not-allowed;background:var(--bg2);color:var(--muted)}
+.bar-bg{height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;margin:8px 0}
+.bar{height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--cyan),var(--green));width:0%;transition:width .6s}
+.log{background:var(--bg2);border:1px solid var(--border);border-radius:7px;
+  padding:8px;height:140px;overflow-y:auto;font-size:11px;line-height:2}
+.log::-webkit-scrollbar{width:3px}
+.log::-webkit-scrollbar-thumb{background:var(--border)}
+.ll{color:var(--muted)}.ll.ok{color:var(--green)}.ll.info{color:var(--cyan)}
+.ll.warn{color:var(--amber)}.ll.err{color:var(--red)}
+.status-line{font-size:11px;color:var(--amber);min-height:16px;margin-top:6px}
+.hr{display:flex;justify-content:space-between;padding:4px 0;
+  border-bottom:1px solid var(--border);font-size:11px}
+.hr:last-child{border-bottom:none}
+.badge{padding:1px 6px;border-radius:8px;font-size:10px;
+  background:rgba(0,200,240,.1);border:1px solid var(--cyan);color:var(--cyan)}
+.badge.g{background:rgba(0,230,118,.1);border-color:var(--green);color:var(--green)}
+
+/* Detect tab */
+.detect-wrap{position:relative;width:100%;aspect-ratio:4/3;
+  background:#000;border-radius:8px;overflow:hidden;margin-bottom:10px}
+.detect-video{width:100%;height:100%;object-fit:cover}
+.detect-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.detect-btn{display:block;width:100%;padding:11px;border-radius:8px;border:none;
+  cursor:pointer;font-family:var(--mono);font-size:13px;
+  font-weight:bold;letter-spacing:1px;margin-bottom:10px}
+.detect-btn.start{background:linear-gradient(135deg,#005f78,var(--cyan));color:#000}
+.detect-btn.stop{background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);color:var(--red)}
+.detect-btn:disabled{opacity:.3;cursor:not-allowed}
+.result-name{font-size:24px;font-weight:bold;color:var(--green);margin-bottom:4px;min-height:30px}
+.conf-bar-bg{height:6px;background:var(--bg2);border-radius:3px;overflow:hidden}
+.conf-bar{height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--cyan),var(--green));width:0%;transition:width .3s}
+.info-box{background:rgba(0,200,240,.05);border:1px solid rgba(0,200,240,.2);
+  border-radius:7px;padding:9px 11px;font-size:11px;color:var(--cyan);
+  line-height:1.7;margin-bottom:10px}
+.warn-note{background:rgba(255,179,0,.07);border:1px solid rgba(255,179,0,.3);
+  border-radius:7px;padding:8px 10px;font-size:11px;color:var(--amber);
+  line-height:1.7;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="dot" id="connDot"></span>
+  <span class="topbar-title">FL FACE CLIENT</span>
+  <span style="font-size:10px;color:var(--muted)" id="roundIndicator">—</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tabCapture" onclick="showTab('camera')">📷 Capture</div>
+  <div class="tab"        id="tabTrain"   onclick="showTab('train')">▶ Train</div>
+  <div class="tab"        id="tabDetect"  onclick="showTab('detect')">🔍 Detect</div>
+</div>
+
+<!-- ══ CAPTURE TAB ══════════════════════════════════ -->
+<div id="cameraSection">
+
+  <div class="info-box">
+    Snap faces with your camera — photos stay on this device.
+    Only trained weights are sent to the laptop.
+    Aim for at least 5 shots per person.
+  </div>
+
+  <div class="cam-error" id="camError">
+    <strong>Camera blocked.</strong><br>
+    1. Make sure the URL starts with <strong>https://</strong><br>
+    2. Tap the lock icon → Site settings → Camera → Allow<br>
+    3. Reload the page.
+  </div>
+
+  <div class="video-wrap" id="videoWrap">
+    <video class="vw-video" id="video" autoplay playsinline muted></video>
+    <div class="face-guide"></div>
+  </div>
+
+  <button class="btn-cam" id="btnCamToggle" onclick="toggleCamera()">↕ Switch to rear camera</button>
+
+  <div class="capture-row">
+    <select id="personSelect"><option value="">Connecting…</option></select>
+    <button class="btn-snap" id="btnSnap" onclick="captureFrame()" disabled>◉</button>
+  </div>
+
+  <!-- Add new person -->
+  <div class="add-person-row">
+    <input id="newPersonName" type="text" placeholder="New person name…" maxlength="40">
+    <button class="btn-add" id="btnAddPerson" onclick="addPerson()" disabled>+ Add</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">Photos</div>
+      <div class="stat-num" id="totalPhotos">0</div></div>
+    <div class="stat-box"><div class="label">People</div>
+      <div class="stat-num a" id="totalPeople">0</div></div>
+    <div class="stat-box"><div class="label">Ready</div>
+      <div class="stat-num r" id="readyBadge">No</div></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Captured faces</div>
+    <div id="thumbGrid" style="margin-top:6px;font-size:11px;color:var(--muted)">
+      Select a person and press ◉ to snap.
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ TRAIN TAB ════════════════════════════════════ -->
+<div id="trainSection" style="display:none">
+  <button class="btn-start" id="btnStart" onclick="startFL()">▶ Start federated learning</button>
+
+  <div class="card">
+    <div class="label">Round</div>
+    <div style="font-size:30px;font-weight:bold;color:var(--cyan)" id="roundNum">0 / —</div>
+    <div class="bar-bg"><div class="bar" id="roundBar"></div></div>
+    <div class="status-line" id="statusLine">Capture faces first, then start training.</div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box"><div class="label">Global acc</div>
+      <div class="stat-num g" id="accVal">—</div></div>
+    <div class="stat-box"><div class="label">Local loss</div>
+      <div class="stat-num" id="lossVal">—</div></div>
+    <div class="stat-box"><div class="label">Samples</div>
+      <div class="stat-num a" id="samplesVal">—</div></div>
+  </div>
+
+  <div class="card" style="padding:10px">
+    <div class="label" style="margin-bottom:6px">Activity log</div>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Round history</div>
+    <div id="history" style="margin-top:8px;font-size:11px;color:var(--muted)">No rounds yet.</div>
+  </div>
+</div>
+
+<!-- ══ DETECT TAB ═══════════════════════════════════ -->
+<div id="detectSection" style="display:none">
+
+  <div class="warn-note" id="detectNote">
+    ⚠ Train the model first (Capture + Train tabs), then come here to detect faces live.
+  </div>
+
+  <div class="detect-wrap">
+    <video class="detect-video" id="detectVideo" autoplay playsinline muted></video>
+    <canvas class="detect-canvas" id="detectCanvas"></canvas>
+  </div>
+
+  <button class="detect-btn start" id="btnDetectStart" onclick="startDetection()">▶ Start detection</button>
+  <button class="detect-btn stop"  id="btnDetectStop"  onclick="stopDetection()" style="display:none">■ Stop detection</button>
+
+  <div class="result-card card">
+    <div class="label">Detected identity</div>
+    <div class="result-name" id="detResult">—</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px" id="detConf">—</div>
+    <div class="conf-bar-bg"><div class="conf-bar" id="detBar"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Top predictions</div>
+    <div id="detTop3" style="margin-top:8px;font-size:11px;color:var(--muted)">—</div>
+  </div>
+
+  <div class="card" style="padding:10px">
+    <div class="label">Detection engine</div>
+    <div id="detStatus" style="font-size:11px;color:var(--muted);margin-top:4px">Not loaded.</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════
+//  Config — must match phone_server.py
+// ══════════════════════════════════════════════════
+const IMG_SIZE   = 32;
+const HIDDEN     = 64;
+const LOC_EPOCHS = 3;    // match server
+const BATCH      = 4;
+const LR         = 0.005;
+const DP_CLIP    = 1.0;
+const DP_NOISE   = 0.02;
+const MOMENTUM   = 0.9;
+
+// ══════════════════════════════════════════════════
+//  App state
+// ══════════════════════════════════════════════════
+let classNames  = [];
+let numClasses  = 0;
+let totalRounds = 10;
+let running     = false;
+let usingFront  = true;
+let camStream   = null;
+
+// captures[classIndex] = [Float32Array(3072), ...]  — never leave device
+const captures = {};
+
+// tf.Variables — null until buildModel() called
+let vars = null;  // { W1, b1, W2, b2 }
+let vels = null;  // momentum velocities
+
+// ══════════════════════════════════════════════════
+//  Tab navigation
+// ══════════════════════════════════════════════════
+function showTab(tab) {
+  ['camera','train','detect'].forEach(t => {
+    const section = t === 'camera' ? 'cameraSection'
+                  : t === 'train'  ? 'trainSection' : 'detectSection';
+    document.getElementById(section).style.display = tab === t ? 'block' : 'none';
+    const tabId = t === 'camera' ? 'tabCapture'
+                : t === 'train'  ? 'tabTrain' : 'tabDetect';
+    document.getElementById(tabId).className = 'tab' + (tab === t ? ' active' : '');
+  });
+  if (tab !== 'detect') stopDetection();
+}
+
+// ══════════════════════════════════════════════════
+//  Logging
+// ══════════════════════════════════════════════════
+function log(msg, cls = '') {
+  const el   = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className   = 'll ' + cls;
+  line.textContent = new Date().toTimeString().slice(0,8) + '  ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  while (el.children.length > 200) el.removeChild(el.firstChild);
+}
+
+function setStatus(msg, cls = '') {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg;
+  el.style.color = {ok:'var(--green)',err:'var(--red)',info:'var(--cyan)'}[cls]||'var(--amber)';
+}
+
+function setRound(rnd, total) {
+  document.getElementById('roundNum').textContent = `${rnd} / ${total}`;
+  document.getElementById('roundBar').style.width = total > 0 ? `${(rnd/total)*100}%` : '0%';
+  document.getElementById('roundIndicator').textContent = `rnd ${rnd}/${total}`;
+}
+
+// ══════════════════════════════════════════════════
+//  Camera
+// ══════════════════════════════════════════════════
+async function startCamera() {
+  if (camStream) { camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  const errBanner = document.getElementById('camError');
+  const videoWrap = document.getElementById('videoWrap');
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: usingFront?'user':'environment',
+               width:{ideal:320}, height:{ideal:240} },
+      audio: false,
+    });
+    const video = document.getElementById('video');
+    video.srcObject = camStream;
+    video.style.transform = usingFront ? 'scaleX(-1)' : 'scaleX(1)';
+    await video.play();
+    errBanner.style.display = 'none';
+    videoWrap.style.display = 'block';
+    document.getElementById('btnSnap').disabled = false;
+  } catch(e) {
+    camStream = null;
+    videoWrap.style.display = 'none';
+    errBanner.style.display = 'block';
+    document.getElementById('btnSnap').disabled = true;
+    console.error('Camera:', e);
+  }
+}
+
+function toggleCamera() {
+  usingFront = !usingFront;
+  document.getElementById('btnCamToggle').textContent =
+    usingFront ? '↕ Switch to rear camera' : '↕ Switch to front camera';
+  startCamera();
+}
+
+// ══════════════════════════════════════════════════
+//  Capture one frame
+// ══════════════════════════════════════════════════
+function captureFrame() {
+  const sel   = document.getElementById('personSelect');
+  const label = parseInt(sel.value, 10);
+  if (isNaN(label)) { alert('Select a person first.'); return; }
+
+  const video  = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = IMG_SIZE;
+  const ctx = canvas.getContext('2d');
+  if (usingFront) {
+    ctx.save(); ctx.translate(IMG_SIZE,0); ctx.scale(-1,1);
+    ctx.drawImage(video,0,0,IMG_SIZE,IMG_SIZE); ctx.restore();
+  } else {
+    ctx.drawImage(video,0,0,IMG_SIZE,IMG_SIZE);
+  }
+
+  const raw = ctx.getImageData(0,0,IMG_SIZE,IMG_SIZE).data;
+  const vec = new Float32Array(IMG_SIZE*IMG_SIZE*3);
+  for (let p=0; p<IMG_SIZE*IMG_SIZE; p++) {
+    vec[p*3]=raw[p*4]/255; vec[p*3+1]=raw[p*4+1]/255; vec[p*3+2]=raw[p*4+2]/255;
+  }
+
+  if (!captures[label]) captures[label] = [];
+  captures[label].push(vec);
+
+  // Flash
+  const v = document.getElementById('video');
+  v.style.opacity='0.2'; setTimeout(()=>{v.style.opacity='1';},120);
+  refreshThumbGrid();
+}
+
+// ══════════════════════════════════════════════════
+//  Add new person
+// ══════════════════════════════════════════════════
+async function addPerson() {
+  const input = document.getElementById('newPersonName');
+  const name  = input.value.trim();
+  if (!name) { alert('Enter a name first.'); return; }
+
+  document.getElementById('btnAddPerson').disabled = true;
+  try {
+    const resp = await apiPost('/api/add_person', { name });
+    if (resp.error) { alert('Error: ' + resp.error); return; }
+
+    // Update local state
+    classNames = resp.class_names;
+    numClasses = resp.num_classes;
+
+    // Rebuild dropdown
+    const sel = document.getElementById('personSelect');
+    sel.innerHTML = classNames.map((n,i) =>
+      `<option value="${i}">${n.replace(/_/g,' ')}</option>`).join('');
+    sel.value = String(resp.new_index);  // select the new person
+
+    // Reset vars so model is rebuilt with new numClasses on next training
+    if (vars) {
+      Object.values(vars).forEach(v=>v.dispose());
+      Object.values(vels).forEach(v=>v.dispose());
+      vars = null; vels = null;
+    }
+
+    input.value = '';
+    log(`Added '${name}' (index ${resp.new_index}). Model reset — retrain needed.`, 'ok');
+  } catch(e) {
+    alert('Server error: ' + e.message);
+  } finally {
+    document.getElementById('btnAddPerson').disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  Thumbnail grid
+// ══════════════════════════════════════════════════
+function refreshThumbGrid() {
+  const container = document.getElementById('thumbGrid');
+  container.innerHTML = '';
+  let totalPhotos=0, activePeople=0;
+
+  for (const [labelStr, vecs] of Object.entries(captures)) {
+    if (!vecs.length) continue;
+    const label = parseInt(labelStr,10);
+    totalPhotos  += vecs.length;
+    activePeople++;
+
+    const section = document.createElement('div');
+    section.className = 'person-section';
+    const header = document.createElement('div');
+    header.className = 'person-header';
+    header.innerHTML = `<span>${(classNames[label]||'Person '+label).replace(/_/g,' ')}</span>
+                        <span>${vecs.length} photo${vecs.length!==1?'s':''}</span>`;
+    section.appendChild(header);
+
+    const strip = document.createElement('div');
+    strip.className = 'thumb-strip';
+    vecs.forEach((vec,i) => {
+      const tc = document.createElement('canvas');
+      tc.width = tc.height = IMG_SIZE;
+      const imgData = tc.getContext('2d').createImageData(IMG_SIZE,IMG_SIZE);
+      for (let p=0;p<IMG_SIZE*IMG_SIZE;p++){
+        imgData.data[p*4]=Math.round(vec[p*3]*255);
+        imgData.data[p*4+1]=Math.round(vec[p*3+1]*255);
+        imgData.data[p*4+2]=Math.round(vec[p*3+2]*255);
+        imgData.data[p*4+3]=255;
+      }
+      tc.getContext('2d').putImageData(imgData,0,0);
+      const display = document.createElement('canvas');
+      display.width=display.height=38; display.className='thumb';
+      display.getContext('2d').drawImage(tc,0,0,38,38);
+      const del=document.createElement('button');
+      del.className='del-btn'; del.textContent='×';
+      del.onclick=()=>{captures[label].splice(i,1);refreshThumbGrid();};
+      const wrap=document.createElement('div');
+      wrap.className='thumb-wrap'; wrap.appendChild(display); wrap.appendChild(del);
+      strip.appendChild(wrap);
+    });
+    section.appendChild(strip);
+    container.appendChild(section);
+  }
+
+  if (!totalPhotos) {
+    container.innerHTML='<div style="color:var(--muted);font-size:11px">No photos yet.</div>';
+  }
+
+  const ready = activePeople>=1 && totalPhotos>=5;
+  document.getElementById('totalPhotos').textContent = totalPhotos;
+  document.getElementById('totalPeople').textContent = activePeople;
+  document.getElementById('readyBadge').textContent  = ready?'Yes':'No';
+  document.getElementById('readyBadge').style.color  = ready?'var(--green)':'var(--red)';
+  document.getElementById('samplesVal').textContent  = totalPhotos;
+}
+
+// ══════════════════════════════════════════════════
+//  Build train tensors (phone-local captures + supplement)
+// ══════════════════════════════════════════════════
+function capturesToArrays() {
+  const allVecs=[]; const allLabels=[];
+  for (const [ls,vecs] of Object.entries(captures)) {
+    const lbl=parseInt(ls,10);
+    for (const v of vecs){allVecs.push(v);allLabels.push(lbl);}
+  }
+  return {vecs:allVecs, labels:allLabels};
+}
+
+function buildTrainTensors(extraVecs, extraLabels) {
+  const {vecs:capVecs, labels:capLabels} = capturesToArrays();
+  const allVecs   = [...capVecs,   ...(extraVecs   || [])];
+  const allLabels = [...capLabels, ...(extraLabels || [])];
+  // Shuffle
+  for (let i=allVecs.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [allVecs[i],allVecs[j]]=[allVecs[j],allVecs[i]];
+    [allLabels[i],allLabels[j]]=[allLabels[j],allLabels[i]];
+  }
+  const n=allVecs.length;
+  const flat=new Float32Array(n*IMG_SIZE*IMG_SIZE*3);
+  allVecs.forEach((v,i)=>flat.set(v,i*v.length));
+  return {
+    X: tf.tensor2d(flat,[n,IMG_SIZE*IMG_SIZE*3]),
+    y: new Int32Array(allLabels),
+    n,
+  };
+}
+
+// ══════════════════════════════════════════════════
+//  Model — plain tf.Variable (no Adam, no Sequential)
+// ══════════════════════════════════════════════════
+function buildModel(nc) {
+  if (vars){Object.values(vars).forEach(v=>v.dispose());}
+  if (vels){Object.values(vels).forEach(v=>v.dispose());}
+  const inp=IMG_SIZE*IMG_SIZE*3;
+  vars={
+    W1:tf.variable(tf.randomNormal([inp,HIDDEN],0,Math.sqrt(2/inp),'float32')),
+    b1:tf.variable(tf.zeros([HIDDEN],'float32')),
+    W2:tf.variable(tf.randomNormal([HIDDEN,nc],0,Math.sqrt(2/HIDDEN),'float32')),
+    b2:tf.variable(tf.zeros([nc],'float32')),
+  };
+  vels={
+    W1:tf.variable(tf.zeros([inp,HIDDEN],'float32')),
+    b1:tf.variable(tf.zeros([HIDDEN],'float32')),
+    W2:tf.variable(tf.zeros([HIDDEN,nc],'float32')),
+    b2:tf.variable(tf.zeros([nc],'float32')),
+  };
+}
+
+function loadWeights(w) {
+  const nc=w.b2.length; const inp=IMG_SIZE*IMG_SIZE*3;
+  tf.tidy(()=>{
+    vars.W1.assign(tf.tensor2d(w.W1,[inp,HIDDEN]));
+    vars.b1.assign(tf.tensor1d(w.b1));
+    vars.W2.assign(tf.tensor2d(w.W2,[HIDDEN,nc]));
+    vars.b2.assign(tf.tensor1d(w.b2));
+  });
+}
+
+function readWeights() {
+  return {
+    W1:Array.from(vars.W1.dataSync()),
+    b1:Array.from(vars.b1.dataSync()),
+    W2:Array.from(vars.W2.dataSync()),
+    b2:Array.from(vars.b2.dataSync()),
+  };
+}
+
+function applyDP(prevArrays) {
+  tf.tidy(()=>{
+    ['W1','b1','W2','b2'].forEach((k,i)=>{
+      const prev=tf.tensor(prevArrays[i],vars[k].shape,'float32');
+      const delta=tf.sub(vars[k],prev);
+      const norm=tf.norm(delta);
+      const scale=tf.minimum(tf.scalar(1.0),
+        tf.div(tf.scalar(DP_CLIP),tf.add(norm,tf.scalar(1e-8))));
+      vars[k].assign(tf.add(prev,tf.add(tf.mul(delta,scale),
+        tf.randomNormal(vars[k].shape,0,DP_NOISE,'float32'))));
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  Local training — manual backprop (no Adam)
+// ══════════════════════════════════════════════════
+async function localTrain(trainX, trainY, n) {
+  const nc=vars.b2.shape[0];
+  const prevArrays=['W1','b1','W2','b2'].map(k=>vars[k].dataSync().slice());
+  let totalLoss=0, batches=0;
+
+  for (let epoch=0; epoch<LOC_EPOCHS; epoch++) {
+    const perm=tf.util.createShuffledIndices(n);
+    for (let i=0; i<=n-BATCH; i+=BATCH) {
+      const idx=Array.from(perm.subarray(i,i+BATCH));
+      const labels=idx.map(j=>trainY[j]);
+
+      const [lossT,gW1,gb1,gW2,gb2]=tf.tidy(()=>{
+        const xb=tf.gather(trainX,idx);
+        const z1=tf.add(tf.matMul(xb,vars.W1),vars.b1);
+        const h =tf.relu(z1);
+        const lo=tf.add(tf.matMul(h,vars.W2),vars.b2);
+        const sh=tf.sub(lo,tf.max(lo,1,true));
+        const ex=tf.exp(sh);
+        const p =tf.div(ex,tf.sum(ex,1,true));
+        const yb=tf.tensor1d(labels,'int32');
+        const yOH=tf.oneHot(yb,nc).toFloat();
+        const L=tf.neg(tf.mean(tf.sum(tf.mul(yOH,tf.log(tf.add(p,1e-8))),1)));
+        const B=tf.scalar(BATCH,'float32');
+        const dp=tf.div(tf.sub(p,yOH),B);
+        const gW2_=tf.matMul(tf.transpose(h),dp);
+        const gb2_=tf.sum(dp,0);
+        const dh=tf.matMul(dp,tf.transpose(vars.W2));
+        const dz1=tf.mul(dh,tf.cast(tf.greater(z1,0),'float32'));
+        const gW1_=tf.matMul(tf.transpose(xb),dz1);
+        const gb1_=tf.sum(dz1,0);
+        return [L,gW1_,gb1_,gW2_,gb2_];
+      });
+
+      totalLoss+=(await lossT.data())[0]; batches++;
+
+      tf.tidy(()=>{
+        const M=tf.scalar(MOMENTUM,'float32');
+        const R=tf.scalar(LR,'float32');
+        const vW1=tf.add(tf.mul(M,vels.W1),tf.mul(R,gW1));
+        const vb1=tf.add(tf.mul(M,vels.b1),tf.mul(R,gb1));
+        const vW2=tf.add(tf.mul(M,vels.W2),tf.mul(R,gW2));
+        const vb2=tf.add(tf.mul(M,vels.b2),tf.mul(R,gb2));
+        vels.W1.assign(vW1); vars.W1.assign(tf.sub(vars.W1,vW1));
+        vels.b1.assign(vb1); vars.b1.assign(tf.sub(vars.b1,vb1));
+        vels.W2.assign(vW2); vars.W2.assign(tf.sub(vars.W2,vW2));
+        vels.b2.assign(vb2); vars.b2.assign(tf.sub(vars.b2,vb2));
+      });
+
+      lossT.dispose();gW1.dispose();gb1.dispose();gW2.dispose();gb2.dispose();
+    }
+    log(`  Epoch ${epoch+1}/${LOC_EPOCHS}  loss=${(totalLoss/Math.max(batches,1)).toFixed(4)}`,'');
+    await tf.nextFrame();
+  }
+  applyDP(prevArrays);
+  return totalLoss/Math.max(batches,1);
+}
+
+// ══════════════════════════════════════════════════
+//  Network
+// ══════════════════════════════════════════════════
+async function apiGet(path) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(()=>ctrl.abort(), 15000);  // 15s timeout
+  try {
+    const r = await fetch(path, { signal: ctrl.signal });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  } finally { clearTimeout(tid); }
+}
+
+async function apiPost(path, body) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(()=>ctrl.abort(), 30000);
+  try {
+    const r = await fetch(path, {
+      method:'POST', signal: ctrl.signal,
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  } finally { clearTimeout(tid); }
+}
+
+// ══════════════════════════════════════════════════
+//  Download supplement data from laptop
+// ══════════════════════════════════════════════════
+async function fetchSupplement() {
+  try {
+    log('Downloading supplement images from laptop …', 'info');
+    const resp = await apiGet('/api/supplement');
+    if (!resp.images || !resp.images.length) return { vecs:[], labels:[] };
+
+    const vecs=[], labels=[];
+    for (let i=0; i<resp.images.length; i++) {
+      const u8  = resp.images[i];   // uint8 array
+      const vec = new Float32Array(u8.length);
+      for (let j=0;j<u8.length;j++) vec[j]=u8[j]/255;
+      vecs.push(vec);
+      labels.push(resp.labels[i]);
+    }
+    log(`  Got ${vecs.length} supplement images (${resp.num_classes} classes)`, 'ok');
+    return { vecs, labels };
+  } catch(e) {
+    log('  Supplement fetch failed (continuing without): '+e.message, 'warn');
+    return { vecs:[], labels:[] };
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  Main FL loop  — EVERYTHING inside try-catch
+// ══════════════════════════════════════════════════
+async function startFL() {
+  if (running) return;
+
+  // ── Immediate visible feedback (before ANY await or throw) ──
+  const btn = document.getElementById('btnStart');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting…';
+  setStatus('Initialising…', 'info');
+  // Force a paint before doing anything else
+  await tf.nextFrame();
+
+  // Now move to Train tab so user can see the log
+  showTab('train');
+  log('▶ Start FL clicked — initialising…', 'info');
+  await tf.nextFrame();
+
+  running = true;
+  let trainX = null;
+
+  try {
+    // ── Guard checks ──
+    if (numClasses === 0)
+      throw new Error('Not connected to server. Reload the page and check WiFi.');
+
+    const {vecs:capVecs, labels:capLabels} = capturesToArrays();
+    const capturedPeople = new Set(capLabels).size;
+
+    if (capturedPeople === 0)
+      throw new Error('Capture at least 1 person\'s face in the Capture tab first.');
+    if (capVecs.length < 3)
+      throw new Error(`Need at least 3 captured photos. You have ${capVecs.length}.`);
+
+    log(`Captures: ${capVecs.length} photos from ${capturedPeople} people`, 'info');
+
+    // ── Download supplement from laptop dataset ──
+    const { vecs: suppVecs, labels: suppLabels } = await fetchSupplement();
+
+    // ── Build training tensors ──
+    const built = buildTrainTensors(suppVecs, suppLabels);
+    trainX = built.X;
+    const trainY = built.y;
+    const n      = built.n;
+    log(`Training set: ${n} total samples (${capVecs.length} phone + ${suppVecs.length} laptop)`, 'info');
+    document.getElementById('samplesVal').textContent = n;
+
+    // ── Build or rebuild model ──
+    if (!vars || vars.b2.shape[0] !== numClasses) {
+      buildModel(numClasses);
+      log(`Model built: ${IMG_SIZE*IMG_SIZE*3}→${HIDDEN}→${numClasses}`, 'info');
+    }
+
+    // ── FL rounds ──
+    for (let rnd = 1; rnd <= totalRounds; rnd++) {
+      setRound(rnd, totalRounds);
+      log(`── Round ${rnd}/${totalRounds} ──`, 'info');
+
+      // 1. Get global weights
+      setStatus(`Round ${rnd} — fetching global weights…`);
+      let wresp;
+      try {
+        wresp = await apiGet('/api/weights');
+      } catch(e) {
+        throw new Error(`Cannot reach server at round ${rnd}: ${e.message}`);
+      }
+      if (rnd > 1 && wresp.round >= wresp.total_rounds) {
+        log('Server reports training complete.', 'warn'); break;
+      }
+      totalRounds = wresp.total_rounds;
+      loadWeights(wresp.weights);
+      log(`  Global round ${wresp.round} loaded`, '');
+
+      // 2. Local training
+      setStatus(`Round ${rnd} — training on device…`);
+      const loss = await localTrain(trainX, trainY, n);
+      document.getElementById('lossVal').textContent = loss.toFixed(4);
+      log(`  Training done. Loss: ${loss.toFixed(4)}`, 'ok');
+
+      // 3. Upload weights
+      setStatus(`Round ${rnd} — uploading weights…`);
+      const ws = readWeights();
+      let result;
+      try {
+        result = await apiPost('/api/weights', { weights: ws, num_samples: n });
+      } catch(e) {
+        throw new Error(`Weight upload failed at round ${rnd}: ${e.message}`);
+      }
+      log(`  Uploaded → next round ${result.next_round}`, 'ok');
+
+      // 4. Wait for aggregation
+      setStatus(`Round ${rnd} — waiting for aggregation…`);
+      let done = false;
+      for (let poll=0; poll<30 && !done; poll++) {
+        await new Promise(r=>setTimeout(r,1500));
+        try {
+          const st = await apiGet('/api/status');
+          if (st.round >= rnd) { updateHistory(st.history); done=true; }
+        } catch(_) {}
+      }
+      if (!done) log('  Server slow — continuing anyway.', 'warn');
+
+      if (rnd < totalRounds) {
+        setStatus(`Round ${rnd} complete — next in 2s…`, 'ok');
+        await new Promise(r=>setTimeout(r,2000));
+      }
+    }
+
+    setStatus('Training complete!', 'ok');
+    log('All rounds finished. Go to Detect tab to test.', 'ok');
+    document.getElementById('connDot').className = 'dot';
+
+  } catch(err) {
+    log('ERROR: ' + err.message, 'err');
+    setStatus('Error — see log', 'err');
+    console.error(err);
+  } finally {
+    if (trainX) trainX.dispose();
+    running = false;
+    btn.disabled  = false;
+    btn.textContent = '↺ Run again';
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  History
+// ══════════════════════════════════════════════════
+function updateHistory(history) {
+  if (!history.length) return;
+  document.getElementById('history').innerHTML =
+    [...history].reverse().map(h=>
+      `<div class="hr">
+        <span>Round ${h.round}</span><span>${h.acc}%</span>
+        <span><span class="badge ${h.clients>1?'g':''}">${h.clients} client${h.clients>1?'s':''}</span></span>
+      </div>`
+    ).join('');
+  document.getElementById('accVal').textContent = history[history.length-1].acc+'%';
+}
+
+// ══════════════════════════════════════════════════
+//  BlazeFace detection
+// ══════════════════════════════════════════════════
+let blazeModel   = null;
+let detectStream = null;
+let detectLoop_  = false;
+const BOX_COLORS = ['#00c8f0','#00e676','#ffb300','#b388ff',
+                    '#ff7043','#26c6da','#69f0ae','#ea80fc'];
+
+async function loadBlazeface() {
+  const el = document.getElementById('detStatus');
+  el.textContent = 'Loading BlazeFace…'; el.style.color='var(--amber)';
+  try {
+    // Try local (offline) first, fall back to CDN
+    const localUrl = '/static/blazeface/model.json';
+    const cdnUrl   = 'https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7';
+    let loaded = false;
+    try {
+      // Check if local model exists by fetching model.json
+      const ping = await fetch(localUrl, { method: 'HEAD' });
+      if (ping.ok) {
+        blazeModel = await tf.loadGraphModel(localUrl);
+        // Wrap in a blazeface-compatible API
+        blazeModel._isTFGraphModel = true;
+        loaded = true;
+        el.textContent = 'BlazeFace ready (offline) ✓';
+      }
+    } catch(_) {}
+
+    if (!loaded) {
+      // Load blazeface via dynamic script tag (CDN)
+      await loadScript(cdnUrl + '/dist/blazeface.min.js');
+      blazeModel = await blazeface.load({ maxFaces: 4 });
+      el.textContent = 'BlazeFace ready (CDN) ✓';
+    }
+    el.style.color = 'var(--green)';
+    return true;
+  } catch(e) {
+    el.textContent = 'BlazeFace load failed: ' + e.message;
+    el.style.color = 'var(--red)';
+    return false;
+  }
+}
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = res; s.onerror = rej;
+    document.head.appendChild(s);
+  });
+}
+
+async function startDetection() {
+  if (!vars || !vars.W1) {
+    alert('Train the model first (Capture + Train tabs).'); return;
+  }
+  document.getElementById('btnDetectStart').style.display = 'none';
+  document.getElementById('btnDetectStop').style.display  = 'block';
+  document.getElementById('detectNote').style.display     = 'none';
+
+  if (!blazeModel) { const ok = await loadBlazeface(); if (!ok) { stopDetection(); return; } }
+
+  if (detectStream) { detectStream.getTracks().forEach(t=>t.stop()); }
+  try {
+    detectStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'user',width:{ideal:320},height:{ideal:240}},audio:false});
+    const vid = document.getElementById('detectVideo');
+    vid.srcObject = detectStream; vid.style.transform='scaleX(-1)'; await vid.play();
+  } catch(e) {
+    document.getElementById('detStatus').textContent = 'Camera: ' + e.message;
+    stopDetection(); return;
+  }
+  detectLoop_ = true;
+  detectFrame();
+}
+
+function stopDetection() {
+  detectLoop_ = false;
+  if (detectStream) { detectStream.getTracks().forEach(t=>t.stop()); detectStream=null; }
+  const vid = document.getElementById('detectVideo');
+  if (vid) vid.srcObject = null;
+  document.getElementById('btnDetectStart').style.display = 'block';
+  document.getElementById('btnDetectStop').style.display  = 'none';
+  const canvas = document.getElementById('detectCanvas');
+  if (canvas) canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+}
+
+async function detectFrame() {
+  if (!detectLoop_) return;
+  const vid    = document.getElementById('detectVideo');
+  const canvas = document.getElementById('detectCanvas');
+  if (!vid || vid.readyState < 2) { setTimeout(detectFrame, 100); return; }
+
+  const rect = vid.getBoundingClientRect();
+  if (canvas.width!==rect.width||canvas.height!==rect.height) {
+    canvas.width=rect.width; canvas.height=rect.height;
+  }
+  const W=canvas.width, H=canvas.height;
+  const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,W,H);
+
+  let faces=[];
+  try {
+    if (blazeModel._isTFGraphModel) {
+      // raw tf.GraphModel — run a simplified detection
+      faces = [];  // fallback: classify whole frame
+    } else {
+      faces = await blazeModel.estimateFaces(vid, false);
+    }
+  } catch(_) {}
+
+  const vidW=vid.videoWidth||320, vidH=vid.videoHeight||240;
+  const scX=W/vidW, scY=H/vidH;
+
+  // If no faces detected by blazeface, classify the whole frame
+  const toClassify = faces.length > 0
+    ? faces.map(f => ({ box: f, cropSrc: [f.topLeft[0],f.topLeft[1],f.bottomRight[0]-f.topLeft[0],f.bottomRight[1]-f.topLeft[1]] }))
+    : [{ box: null, cropSrc: [0, 0, vidW, vidH] }];
+
+  let topName='No face', topConf=0;
+  const allTop3=[];
+
+  for (let fi=0; fi<toClassify.length; fi++) {
+    const { box, cropSrc:[cx,cy,cw,ch] } = toClassify[fi];
+    const cc=document.createElement('canvas');
+    cc.width=cc.height=IMG_SIZE;
+    cc.getContext('2d').drawImage(vid,cx,cy,cw,ch,0,0,IMG_SIZE,IMG_SIZE);
+    const raw=cc.getContext('2d').getImageData(0,0,IMG_SIZE,IMG_SIZE).data;
+    const vec=new Float32Array(IMG_SIZE*IMG_SIZE*3);
+    for(let p=0;p<IMG_SIZE*IMG_SIZE;p++){vec[p*3]=raw[p*4]/255;vec[p*3+1]=raw[p*4+1]/255;vec[p*3+2]=raw[p*4+2]/255;}
+
+    const probs=tf.tidy(()=>{
+      const x=tf.tensor2d(vec,[1,IMG_SIZE*IMG_SIZE*3]);
+      const z1=tf.add(tf.matMul(x,vars.W1),vars.b1);
+      const h=tf.relu(z1);
+      const lo=tf.add(tf.matMul(h,vars.W2),vars.b2);
+      const sh=tf.sub(lo,tf.max(lo,1,true));
+      const ex=tf.exp(sh);
+      return tf.div(ex,tf.sum(ex,1,true));
+    });
+    const pa=Array.from(probs.dataSync()); probs.dispose();
+
+    const ranked=pa.map((p,i)=>({name:(classNames[i]||'P'+i).replace(/_/g,' '),p}))
+                   .sort((a,b)=>b.p-a.p).slice(0,3);
+    if (ranked[0].p>topConf){topConf=ranked[0].p;topName=ranked[0].name;}
+    if (fi===0) allTop3.push(...ranked);
+
+    if (box) {
+      const x1=(vidW-box.bottomRight[0])*scX, y1=box.topLeft[1]*scY;
+      const bw=(box.bottomRight[0]-box.topLeft[0])*scX;
+      const bh=(box.bottomRight[1]-box.topLeft[1])*scY;
+      const col=BOX_COLORS[fi%BOX_COLORS.length];
+      ctx.strokeStyle=col; ctx.lineWidth=2;
+      ctx.strokeRect(x1-4,y1-4,bw+8,bh+8);
+      const label=ranked[0].name+' '+Math.round(ranked[0].p*100)+'%';
+      ctx.font='bold 12px Courier New,monospace';
+      const tw=ctx.measureText(label).width+10;
+      const ly=Math.max(0,y1-22);
+      ctx.fillStyle=col; ctx.fillRect(x1-4,ly,tw,18);
+      ctx.fillStyle='#000'; ctx.fillText(label,x1+1,ly+13);
+    }
+  }
+
+  document.getElementById('detResult').textContent = topName;
+  document.getElementById('detConf').textContent   = 'Confidence: '+Math.round(topConf*100)+'%';
+  document.getElementById('detBar').style.width    = Math.round(topConf*100)+'%';
+  document.getElementById('detBar').style.background =
+    topConf>0.65?'var(--green)':topConf>0.4?'var(--amber)':'var(--red)';
+
+  if (allTop3.length) {
+    document.getElementById('detTop3').innerHTML = allTop3.map((r,i)=>`
+      <div class="hr">
+        <span style="color:${i===0?'var(--green)':'var(--muted)'}">${i+1}. ${r.name}</span>
+        <span style="color:${i===0?'var(--cyan)':'var(--muted)'}">${Math.round(r.p*100)}%</span>
+      </div>`).join('');
+  }
+
+  setTimeout(detectFrame, 80);  // ~12 fps to save battery
+}
+
+// ══════════════════════════════════════════════════
+//  Startup
+// ══════════════════════════════════════════════════
+(async () => {
+  try {
+    const info  = await apiGet('/api/info');
+    classNames  = info.class_names;
+    numClasses  = info.num_classes;
+    totalRounds = info.total_rounds;
+    const sel = document.getElementById('personSelect');
+    sel.innerHTML = classNames.map((n,i)=>
+      `<option value="${i}">${n.replace(/_/g,' ')}</option>`).join('');
+    sel.value='0';
+    document.getElementById('connDot').className = 'dot live';
+    document.getElementById('roundIndicator').textContent = `0/${totalRounds} rds`;
+    document.getElementById('btnAddPerson').disabled = false;
+    log(`Connected. ${numClasses} identities.`, 'ok');
+    setStatus('Connected. Capture faces then start training.');
+  } catch(e) {
+    log('Cannot reach server — check WiFi and https://', 'err');
+    setStatus('Server unreachable.', 'err');
+  }
+  await startCamera();
+  setInterval(async()=>{
+    if(running)return;
+    try{
+      const st=await apiGet('/api/status');
+      setRound(st.round,st.total_rounds||totalRounds);
+      if(st.history.length)updateHistory(st.history);
+    }catch(_){}
+  },5000);
+})();
+</script>
+</body>
+</html>
