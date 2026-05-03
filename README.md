@@ -22,19 +22,21 @@ The project’s actual strengths are:
 
 🔹 1. Zero-install Federated Learning Client
 Runs entirely in browser (no APK)
-Uses TensorFlow.js
+Uses TensorFlow.js\
 🔹 2. Fully Offline FL System
 Works over local WiFi
-No internet required after setup
+No internet required after setup\
 🔹 3. Differential Privacy Integration
 Gradient clipping (C = 1.0)
-Gaussian noise (σ = 0.02)
+Gaussian noise (σ = 0.02)\
 🔹 4. Fix for TF.js Android Bug
 Replaced Adam optimizer with custom SGD
-Prevents WebGL crash
+Prevents WebGL crash\
 🔹 5. Supplement Dataset Mechanism
 Improves non-IID performance
-Adds balanced class samples
+Adds balanced class samples\
+
+
 Experiment Details
 Dataset:
 LFW (filtered to ~15 identities)
