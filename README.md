@@ -37,20 +37,20 @@ Improves non-IID performance
 Adds balanced class samples\
 
 
-Experiment Details
+Experiment Details\
 Dataset:
 LFW (filtered to ~15 identities)
 Training Setup:
 FL rounds: 10
 Local epochs: 3
 Batch size: 4 (phone), 8 (server)
-Learning rate: 0.005
+Learning rate: 0.005\
 Results:
 Metric	Value
 Accuracy (with DP)	84%
 Accuracy (without DP)	89%
 Privacy loss (ε)	~4.2
-FPS	~12
+FPS	~12\
 Observations:
 DP introduces ~5% accuracy drop
 Supplement data improves accuracy significantly
